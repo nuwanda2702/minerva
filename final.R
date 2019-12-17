@@ -187,3 +187,72 @@ mb.out <- MatchBalance(treat~ CityDistKm +Trade82+distRail45+
                        nboots=1000)
 #before p min: 0.005
 #after p min: 0.014
+
+
+
+### replicate figure 4: 
+
+rm(list=ls())
+
+#install required packages if they are missing:
+list.of.packages <- c("stargazer","visreg","spdep","maptools","rgdal","maptools","sandwich","lmtest","RCurl", "SnowballC","wordcloud","RColorBrewer","tm","foreign")
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]; if(length(new.packages)){install.packages(new.packages)}
+lapply(list.of.packages, require, character.only = TRUE)
+rm(list.of.packages, new.packages)
+
+### ^after installing these^,
+
+crd$distRail45KM<-crd$distRail45/1000 #Meters to km 
+
+
+summary(crd$distTreb[crd$distTreb <=50 & crd$miasto==0])
+sd(crd$distTreb[crd$distTreb <=50 & crd$miasto==0])
+
+summary(pol$CampDistKM[pol$CampDistKM <=50 & pol$type!="urban"])
+sd(pol$CampDistKM[pol$CampDistKM <=50 & pol$type!="urban"]) 
+
+summary(crd$distRail45KM[crd$distTreb <=50 & crd$miasto==0])
+sd(crd$distRail45KM[crd$distTreb <=50 & crd$miasto==0]) 
+
+###############################################################################
+############# TABLE 4: Logit Regression, Parliamentary Election 2001 ##########
+###############################################################################
+
+pol$NonLPR2001<-pol$Valid2001-pol$LPR2001
+
+### quasibinomial regression to correct for errors
+
+LPR2001_50Alog<-glm(cbind(LPR2001, NonLPR2001) ~log(CampDistKM), data=pol[pol$CampDistKM <=50 & pol$type!="urban",],quasibinomial)
+summary(LPR2001_50Alog) 
+
+LPR2001_50Blog<-glm(cbind(LPR2001, NonLPR2001) ~log(CampDistKM)+ EllDist01, data=pol[pol$CampDistKM <=50 & pol$type!="urban",],quasibinomial)
+summary(LPR2001_50Blog)  
+
+LPR2001_50Clog<-glm(cbind(LPR2001, NonLPR2001) ~log(CampDistKM)+log(distRail45)+log(CityDistKm)+ EllDist01, data=pol[pol$CampDistKM <=50 & pol$type!="urban",],quasibinomial)
+summary(LPR2001_50Clog)  
+
+LPR2001_60GGlog<-glm(cbind(LPR2001, NonLPR2001) ~log(CampDistKM)+log(distRail45)+log(CityDistKm)+ EllDist01, data=pol[pol$CampDistKM <=60 & pol$type!="urban" & pol$GG==1,], quasibinomial)
+summary(LPR2001_60GGlog)  
+
+LPR2001_70GGlog<-glm(cbind(LPR2001, NonLPR2001) ~log(CampDistKM)+log(distRail45)+log(CityDistKm)+ EllDist01, data=pol[pol$CampDistKM <=70 & pol$type!="urban" & pol$GG==1,], quasibinomial)
+summary(LPR2001_70GGlog)  
+
+stargazer(LPR2001_50Alog, LPR2001_50Blog, LPR2001_50Clog, LPR2001_60GGlog, LPR2001_70GGlog)
+
+#######################################################################################
+############# FIGURE 4: Support for the LPR and Distance to Treblinka    ##############
+#######################################################################################
+
+visreg(LPR2001_50Alog, "CampDistKM", scale="response", ylab="Proportion", xlab="Distance to Treblinka, km", main="LPR vote choice (2001)", fill.par=list(density = 15, angle = 90, col="blue"), line.par=list(col="black"))
+
+### fig 3 and significance codes: 
+
+LPR2001_mix<-glm(cbind(LPR2001, NonLPR2001) ~CampDistKM+I(CampDistKM^2)+log(CampDistKM), data=pol[pol$CampDistKM <=50 & pol$type!="urban",],quasibinomial)
+summary(LPR2001_50Alog) 
+
+visreg(LPR2001_mix, "CampDistKM", scale="response", ylab="Proportion", xlab="Distance to Treblinka, km", main="LPR vote choice (2001)", fill.par=list(density = 15, angle = 90, col="blue"), line.par=list(col="black"))
+
+### figure 4 with diff variable:
+
+LPR2001_50Alog<-glm(cbind(LPR2001, NonLPR2001) ~tanh(CampDistKM/50)+I(CampDistKM^2)+log(CampDistKM), data=pol[pol$CampDistKM <=50 & pol$type!="urban",],quasibinomial)
+summary(LPR2001_50Alog) 
